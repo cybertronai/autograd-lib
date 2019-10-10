@@ -49,3 +49,6 @@ Variations:
 - `autograd_lib.backward_hessian` for Hessian
 - `autograd_lib.backward_jacobian` for Jacobian squared
 - `loss.backward()` for empirical Fisher Information Matrix
+
+
+See autograd_lib_test.py for correctness checks against PyTorch autograd.
