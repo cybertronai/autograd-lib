@@ -4,7 +4,7 @@ By Yaroslav Bulatov, Kazuki Osawa
 
 Library to simplify gradient computations in PyTorch.
 
-An example of computing exact Hessian, Hessian diagonal and KFAC approximation for all linear layers of a model in a single pass:
+An example of computing exact Hessian, Hessian diagonal and KFAC approximation for all linear layers of a ReLU network in a single pass:
 
 
 ```
