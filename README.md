@@ -4,7 +4,10 @@ By Yaroslav Bulatov, Kazuki Osawa
 
 Library to simplify gradient computations in PyTorch.
 
-An example of computing exact Hessian, Hessian diagonal and KFAC approximation for all linear layers of a ReLU network in a single pass:
+See example.py for end-to-end example.
+
+
+To compute exact Hessian, Hessian diagonal and KFAC approximation for all linear layers of a ReLU network in a single pass:
 
 
 ```
@@ -16,8 +19,8 @@ hess_diag = defaultdict(float)
 hess_kfac = defaultdict(lambda: AttrDefault(float))
 
 activations = {}
-def save_activations(layer, a, _):
-    activations[layer] = a
+def save_activations(layer, A, _):
+    activations[layer] = A
 
     # KFAC left factor
     hess_kfac[layer].AA += torch.einsum("ni,nj->ij", A, A)
