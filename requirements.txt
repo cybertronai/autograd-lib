@@ -1,4 +1,1 @@
 attrdict
-torch
-numpy
-torchvision

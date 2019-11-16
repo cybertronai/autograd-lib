@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-import util as u
+from . import util as u
 
 
 class Settings(object):
