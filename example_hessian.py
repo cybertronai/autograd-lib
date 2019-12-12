@@ -27,7 +27,7 @@ d=1
 n=1
 model = simple_model(1, 5)
 data = torch.ones((n, d))
-targets = torch.zeros((n, d))
+targets = torch.ones((n, d))
 loss_fn = least_squares
 
 autograd_lib.register(model)
@@ -62,7 +62,7 @@ def compute_hess(layer, _, B):
 
 
 with autograd_lib.module_hook(compute_hess):
-    autograd_lib.backward_hessian(output, loss='CrossEntropy')
+    autograd_lib.backward_hessian(output, loss='LeastSquares')
 
 for layer in model.modules():
     print(hess_diag[layer])

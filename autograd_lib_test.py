@@ -1,10 +1,11 @@
 from collections import defaultdict
 
 import torch
+import sys
 from attrdict import AttrDefault
 
-import autograd_lib
-import util as u
+from autograd_lib import autograd_lib
+from autograd_lib import util as u
 
 
 def create_toy_model():
@@ -159,6 +160,55 @@ def test_hessian_diag():
             u.check_close(diag_autograd, hess_diag[layer]/batch_size)
 
 
+def test_hessian_diag_sqr():
+    """Like above, but using LeastSquares loss"""
+    
+    data_width = 3
+    batch_size = 2
+    d = [data_width**2, 6, 10]
+    train_steps = 2
+
+    model: u.SimpleMLP = u.SimpleMLP(d, nonlin=True, bias=True)
+    autograd_lib.register(model)
+    dataset = u.TinyMNIST(dataset_size=batch_size*train_steps, data_width=data_width)
+    trainloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False)
+    train_iter = iter(trainloader)
+
+    #loss_fn = torch.nn.CrossEntropyLoss()
+    loss_fn = u.least_squares
+
+    for train_step in range(train_steps):
+        data, targets = next(train_iter)
+
+        hess = defaultdict(float)
+        hess_diag = defaultdict(float)
+        activations = {}
+        def save_activations(layer, a, _):
+            activations[layer] = a
+
+        with autograd_lib.module_hook(save_activations):
+            output = model(data)
+            loss = loss_fn(output, torch.zeros_like(output))
+
+        def compute_hess(layer, _, B):
+            A = activations[layer]
+            BA = torch.einsum("nl,ni->nli", B, A)
+            hess[layer] += torch.einsum('nli,nkj->likj', BA, BA)
+            hess_diag[layer] += torch.einsum("ni,nj->ij", B * B, A * A)
+
+        with autograd_lib.module_hook(compute_hess):
+            autograd_lib.backward_hessian(output, loss='LeastSquares', retain_graph=True)
+
+        # compute Hessian through autograd
+        # for layer in model.layers:
+
+        for layer in model.layers:
+            H_autograd = u.hessian(loss, layer.weight)
+            u.check_close(hess[layer] / batch_size, H_autograd)
+            diag_autograd = torch.einsum('lili->li', H_autograd)
+            u.check_close(diag_autograd, hess_diag[layer]/batch_size)
+
+
 def test_jacobian_full():
     """Test computing Jacobian squared"""
     A, model = create_toy_model()
@@ -234,6 +284,8 @@ def test_fisher_full():
 
 
 if __name__ == '__main__':
+    test_hessian_diag_sqr()
+    # sys.exit()
     test_jacobian_full()
     test_fisher_full()
     test_hessian_full()

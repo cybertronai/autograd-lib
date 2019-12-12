@@ -104,16 +104,30 @@ def backward_jacobian(output: torch.Tensor, retain_graph=False) -> None:
 
 
 def backward_hessian(output, loss='CrossEntropy', retain_graph=False) -> None:
-    assert loss in ('CrossEntropy',), f"Only CrossEntropy loss is supported, got {loss}"
+    supported_losses =  ('CrossEntropy', 'LeastSquares')
+    assert loss in supported_losses, f"Only {supported_losses} loss is supported, got {loss}"
+
     assert u.is_matrix(output)
+    
+    if loss == 'CrossEntropy':
+        # use Cholesky-like decomposition from https://www.wolframcloud.com/obj/yaroslavvb/newton/square-root-formulas.nb
+        n, o = output.shape
+        p = F.softmax(output, dim=1)
 
-    # use Cholesky-like decomposition from https://www.wolframcloud.com/obj/yaroslavvb/newton/square-root-formulas.nb
-    n, o = output.shape
-    p = F.softmax(output, dim=1)
+        mask = torch.eye(o).to(output.device).expand(n, o, o)
+        diag_part = p.sqrt().unsqueeze(2).expand(n, o, o) * mask
+        hess_sqrt = diag_part - torch.einsum('ij,ik->ijk', p.sqrt(), p)   # n, o, o
 
-    mask = torch.eye(o).to(output.device).expand(n, o, o)
-    diag_part = p.sqrt().unsqueeze(2).expand(n, o, o) * mask
-    hess_sqrt = diag_part - torch.einsum('ij,ik->ijk', p.sqrt(), p)   # n, o, o
+        for out_idx in range(o):
+            output.backward(hess_sqrt[:, out_idx, :], retain_graph=(retain_graph or out_idx < o - 1))
 
-    for out_idx in range(o):
-        output.backward(hess_sqrt[:, out_idx, :], retain_graph=(retain_graph or out_idx < o - 1))
+    elif loss == 'LeastSquares':
+        n, o = output.shape
+        hess = []
+
+        id_mat = torch.eye(o)
+        for idx in range(o):
+            hess.append(torch.stack([id_mat[idx]] * n))
+
+        for idx in range(o):
+            output.backward(hess[idx], retain_graph=(retain_graph or idx < o - 1))

@@ -4,13 +4,53 @@ By Yaroslav Bulatov, Kazuki Osawa
 
 Library to simplify gradient computations in PyTorch.
 
-See example.py for end-to-end example.
+# example 1: per-example gradient norms
 
+Example of using it to compute per-example gradient norms for linear layers, using trick from https://arxiv.org/abs/1510.01799
 
-To compute exact Hessian, Hessian diagonal and KFAC approximation for all linear layers of a ReLU network in a single pass:
+See `example_norms.py` for a self-contained example. The important parts:
 
 
 ```
+!pip install autograd-lib
+
+from autograd_lib import autograd_lib
+autograd_lib.register(model)
+
+# define model + data
+
+
+activations = {}
+backprops = {}
+norms = [torch.zeros(n)]
+
+def save_activations(layer, A, _):
+    activations[layer] = A
+    
+def per_example_norms(layer, _, B):
+    A = activations[layer]
+    norms[0]+=(A*A).sum(dim=1)*(B*B).sum(dim=1)
+
+with autograd_lib.module_hook(save_activations):
+    output = model(data)
+    loss = loss_fn(output)
+
+with autograd_lib.module_hook(per_example_norms):
+    loss.backward()
+
+print('per-example gradient norms squared:', norms[0])
+
+```
+
+# Example 2: Hessian quantities
+
+To compute exact Hessian, Hessian diagonal and KFAC approximation for all linear layers of a ReLU network in a single pass.
+
+See `example_hessian.py` for a self-contained example. The important parts:
+
+
+```
+!pip install autograd-lib
 
 autograd_lib.register(model)
 
