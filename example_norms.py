@@ -34,19 +34,18 @@ from autograd_lib import autograd_lib
 autograd_lib.register(model)
 
 activations = {}
-backprops = {}
 norms = [torch.zeros(n)]
 
 def save_activations(layer, A, _):
     activations[layer] = A
     
-def per_example_norms(layer, _, B):
-    A = activations[layer]
-    norms[0]+=(A*A).sum(dim=1)*(B*B).sum(dim=1)
-
 with autograd_lib.module_hook(save_activations):
     output = model(data)
     loss = loss_fn(output)
+
+def per_example_norms(layer, _, B):
+    A = activations[layer]
+    norms[0]+=(A*A).sum(dim=1)*(B*B).sum(dim=1)
 
 with autograd_lib.module_hook(per_example_norms):
     loss.backward()

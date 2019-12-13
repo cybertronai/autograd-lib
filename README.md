@@ -16,14 +16,13 @@ See `example_norms.py` for a runnable example. The important parts:
 
 from autograd_lib import autograd_lib
 
-model = ...
 loss_fn = ...
 data = ...
+model = ...
 autograd_lib.register(model)
 
 
 activations = {}
-backprops = {}
 norms = [torch.zeros(n)]
 
 def save_activations(layer, A, _):
