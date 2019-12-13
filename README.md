@@ -23,7 +23,6 @@ autograd_lib.register(model)
 
 
 activations = {}
-norms = [torch.zeros(n)]
 
 def save_activations(layer, A, _):
     activations[layer] = A
@@ -31,6 +30,8 @@ def save_activations(layer, A, _):
 with autograd_lib.module_hook(save_activations):
     output = model(data)
     loss = loss_fn(output)
+
+norms = [torch.zeros(n)]
 
 def per_example_norms(layer, _, B):
     A = activations[layer]
