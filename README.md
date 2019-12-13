@@ -8,16 +8,18 @@ Library to simplify gradient computations in PyTorch.
 
 Example of using it to compute per-example gradient norms for linear layers, using trick from https://arxiv.org/abs/1510.01799
 
-See `example_norms.py` for a self-contained example. The important parts:
+See `example_norms.py` for a runnable example. The important parts:
 
 
 ```
 !pip install autograd-lib
 
 from autograd_lib import autograd_lib
-autograd_lib.register(model)
 
-# define model + data
+model = ...
+loss_fn = ...
+data = ...
+autograd_lib.register(model)
 
 
 activations = {}
