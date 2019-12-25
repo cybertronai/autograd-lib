@@ -46,11 +46,19 @@ def register(model: nn.Module):
     """
     global global_settings
 
+    layers_registered = 0
+    layers_seen = 0
+    layer_types_seen = set()
     layer: nn.Module
     for layer in model.modules():
+        layers_seen += 1
+        layer_types_seen.add(_layer_type(layer))
         if _layer_type(layer) in supported_layers:
+            layers_registered += 1
             global_settings.hook_handles.append(layer.register_forward_hook(_forward_hook))
             layer.register_backward_hook(_backward_hook)   # don't save handle, https://github.com/pytorch/pytorch/issues/25723
+    assert layers_registered, f"Failed to register hooks because model had no supported layers for hooks. It had layer types {','.join(list(layer_types_seen))}, but supported types are {','.join(supported_layers)}"
+
 
 
 @contextmanager
