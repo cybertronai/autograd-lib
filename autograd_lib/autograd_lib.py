@@ -40,11 +40,22 @@ def _layer_type(layer: nn.Module) -> str:
     return layer.__class__.__name__
 
 
+def reset():
+    # TODO(y) figure out why hooks are left over and deprecate this method
+    while global_settings.forward_hooks:
+        global_settings.forward_hooks.pop()
+    while global_settings.backward_hooks:
+        global_settings.forward_hooks.pop()
+
+
 def register(model: nn.Module):
     """
     Registers given model with autograd_lib. This allows user to module_hook decorator
     """
     global global_settings
+
+    if global_settings.forward_hooks or global_settings.backward_hooks:
+        print("Warning, seeing hooks from previous registration, call 'autograd_lib.reset'")
 
     layers_registered = 0
     layers_seen = 0
