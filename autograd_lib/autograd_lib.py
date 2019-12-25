@@ -45,7 +45,7 @@ def reset():
     while global_settings.forward_hooks:
         global_settings.forward_hooks.pop()
     while global_settings.backward_hooks:
-        global_settings.forward_hooks.pop()
+        global_settings.backward_hooks.pop()
 
 
 def register(model: nn.Module):
