@@ -122,8 +122,20 @@ def backward_jacobian(output: torch.Tensor, retain_graph=False) -> None:
         output.backward(torch.stack([id_mat[idx]] * n), retain_graph=(retain_graph or idx < o - 1))
 
 
-def backward_hessian(output, loss='CrossEntropy', retain_graph=False) -> None:
-    supported_losses =  ('CrossEntropy', 'LeastSquares')
+def backward_hessian(output, loss='CrossEntropy', stochastic=False, retain_graph=False) -> None:
+    """
+    Backprop one or more tensors for the Gauss-Newton approximation of Hessian.
+
+    Args:
+        output: model prediction tensor (used for Gauss-Newton split)
+        loss: type of loss (ie, CrossEntropy or LeastSquares)
+        stochastic: if True use stochastic estimation like Hutchison method
+        retain_graph: same meaning as in torch.backwards, setting as True keeps activations in memory
+
+    Returns:
+
+    """
+    supported_losses = ('CrossEntropy', 'LeastSquares')
     assert loss in supported_losses, f"Only {supported_losses} loss is supported, got {loss}"
 
     assert u.is_matrix(output)
@@ -137,10 +149,17 @@ def backward_hessian(output, loss='CrossEntropy', retain_graph=False) -> None:
         diag_part = p.sqrt().unsqueeze(2).expand(n, o, o) * mask
         hess_sqrt = diag_part - torch.einsum('ij,ik->ijk', p.sqrt(), p)   # n, o, o
 
-        for out_idx in range(o):
-            output.backward(hess_sqrt[:, out_idx, :], retain_graph=(retain_graph or out_idx < o - 1))
+        if not stochastic:
+            for out_idx in range(o):
+                output.backward(hess_sqrt[:, out_idx, :], retain_graph=(retain_graph or out_idx < o - 1))
+        else:
+            vals = torch.LongTensor(n, o).to(output.device).random_(0, 2) * 2 - 1
+            vals = vals.type(torch.get_default_dtype()) / o
+            mixed_vector = torch.einsum('nop,no->np', hess_sqrt, vals)
+            output.backward(mixed_vector, retain_graph=retain_graph)
 
     elif loss == 'LeastSquares':
+        assert not stochastic, "Hutchison method not implemented for LeastSquares"
         n, o = output.shape
         hess = []
 

@@ -220,7 +220,7 @@ class TinyMNIST(datasets.MNIST):
     channels. When provided with original 28, 28 resolution, generates standard 1 channel MNIST dataset.
     """
 
-    def __init__(self, dataset_root='/tmp/data', data_width=4, targets_width=4, dataset_size=0,
+    def __init__(self, dataset_root='data', data_width=4, targets_width=4, dataset_size=0,
                  train=True):
         """
 
