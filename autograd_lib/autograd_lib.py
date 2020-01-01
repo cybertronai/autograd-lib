@@ -159,13 +159,17 @@ def backward_hessian(output, loss='CrossEntropy', stochastic=False, retain_graph
             output.backward(mixed_vector, retain_graph=retain_graph)
 
     elif loss == 'LeastSquares':
-        assert not stochastic, "Hutchison method not implemented for LeastSquares"
         n, o = output.shape
         hess = []
 
-        id_mat = torch.eye(o)
-        for idx in range(o):
-            hess.append(torch.stack([id_mat[idx]] * n))
+        if not stochastic:
+            id_mat = torch.eye(o).to(output.device)
+            for idx in range(o):
+                output.backward(torch.stack([id_mat[idx]] * n), retain_graph=(retain_graph or idx < o - 1))
+        else:
+            vals = torch.LongTensor(n, o).to(output.device).random_(0, 2) * 2 - 1
+            vals = vals.type(torch.get_default_dtype())
+            vals /= o  # factor to preserve magnitudes from exact case.
+            # switching to subsampling, kfac_fro became 1000x smaller, diversity became 300x larger, kfac_l2 unaffected
+            output.backward(vals, retain_graph=retain_graph)
 
-        for idx in range(o):
-            output.backward(hess[idx], retain_graph=(retain_graph or idx < o - 1))
