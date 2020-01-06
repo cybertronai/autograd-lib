@@ -68,8 +68,7 @@ def register(model: nn.Module):
             layers_registered += 1
             global_settings.hook_handles.append(layer.register_forward_hook(_forward_hook))
             layer.register_backward_hook(_backward_hook)   # don't save handle, https://github.com/pytorch/pytorch/issues/25723
-    assert layers_registered, f"Failed to register hooks because model had no supported layers for hooks. It had layer types {','.join(list(layer_types_seen))}, but supported types are {','.join(supported_layers)}"
-
+    assert layers_registered, f"Failed to register hooks because model had no supported layers for hooks. Model had layer types {', '.join(list(layer_types_seen))}, but supported types are {', '.join(supported_layers)}"
 
 
 @contextmanager
@@ -96,11 +95,13 @@ def module_hook(hook: Callable):
 
     global_settings.forward_hooks.append(forward_hook)
     global_settings.backward_hooks.append(backward_hook)
-    yield
-    assert forward_hook_called[0] or backward_hook_called[0], "Hook was called neither on forward nor backward pass, did you register your model?"
-    assert not (forward_hook_called[0] and backward_hook_called[0]), "Hook was called both on forward and backward pass, did you register your model?"
-    global_settings.forward_hooks.pop()
-    global_settings.backward_hooks.pop()
+    try:
+        yield
+        assert forward_hook_called[0] or backward_hook_called[0], "Hook was called neither on forward nor backward pass, did you register your model?"
+        assert not (forward_hook_called[0] and backward_hook_called[0]), "Hook was called both on forward and backward pass, did you register your model?"
+    finally:
+        global_settings.forward_hooks.pop()
+        global_settings.backward_hooks.pop()
 
 
 def backward_jacobian(output: torch.Tensor, retain_graph=False) -> None:
